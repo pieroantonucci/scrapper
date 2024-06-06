@@ -2,18 +2,8 @@
 import { NextResponse } from 'next/server';
 import puppeteer from 'puppeteer';
 import cortesTribunales from '../../../data/cortesTribunales.json';
-import pLimit from 'p-limit';
-import cortesTribunalesPrueba from '../../../data/cortesTribunalesPrueba.json';
 
-const limit = pLimit(5); // Puedes ajustar el límite según tu capacidad de hardware
-
-const buscarCausas = async ( rut, dv, corte, tribunal) => {
- 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-  });
-  const page = await browser.newPage();
+const buscarCausas = async (page, rut, dv, corte, tribunal) => {
   try {
     await page.goto('https://reca.pjud.cl/NRECA/MenuForwardAction.do?method=cargaBusquedaPorRut', {
       waitUntil: 'networkidle2'
@@ -39,6 +29,7 @@ const buscarCausas = async ( rut, dv, corte, tribunal) => {
     console.log(`Seleccionado tribunal: ${tribunal}`);
 
     // Obtener el captcha
+    await page.waitForSelector('.input-group-prepend span');
     const captchaText = await page.evaluate(() => {
       return document.querySelector('.input-group-prepend span').innerText.trim();
     });
@@ -52,7 +43,7 @@ const buscarCausas = async ( rut, dv, corte, tribunal) => {
     console.log('Botón de búsqueda presionado');
 
     // Esperar a que los resultados se carguen
-    await page.waitForSelector('#users-list-datatable', { timeout: 60000 }); // Aumenta el tiempo de espera
+    await page.waitForSelector('#users-list-datatable', { timeout: 2000 });
     console.log('Resultados cargados');
 
     // Verificar si se encontraron resultados
@@ -63,7 +54,6 @@ const buscarCausas = async ( rut, dv, corte, tribunal) => {
 
     if (noResults) {
       console.log(`No se encontraron resultados para Corte: ${corte}, Tribunal: ${tribunal}`);
-      await browser.close();
       return [];
     }
 
@@ -86,11 +76,9 @@ const buscarCausas = async ( rut, dv, corte, tribunal) => {
     });
 
     console.log(`Datos extraídos para Corte: ${corte}, Tribunal: ${tribunal}:`, data);
-    await browser.close();
     return data;
   } catch (error) {
     console.error(`Error en buscar Causas para Corte: ${corte}, Tribunal: ${tribunal}`, error);
-    await browser.close();
     return [];
   }
 };
@@ -104,17 +92,25 @@ export async function GET(request) {
     return NextResponse.json({ error: 'RUT y DV son requeridos' }, { status: 400 });
   }
 
+  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] });
+  const page = await browser.newPage();
+
   try {
-    const promises = cortesTribunales.map(({ corte, tribunal }) =>
-      limit(() => buscarCausas(rut, dv, corte, tribunal))
-    );
-
-    const results = await Promise.all(promises);
-
-    const allResults = results.flat();
-
+    let allResults = [];
+    for (const { corte, tribunal } of cortesTribunales) {
+      try {
+        const data = await buscarCausas(page, rut, dv, corte, tribunal);
+        console.log(`Datos obtenidos para Corte: ${corte}, Tribunal: ${tribunal}:`, data);
+        allResults = [...allResults, ...data];
+      } catch (error) {
+        console.error(`Error en buscarCausas para Corte: ${corte}, Tribunal: ${tribunal}`, error);
+      }
+    }
+    await browser.close();
+    console.log('Todos los resultados obtenidos:', allResults);
     return NextResponse.json(allResults, { status: 200 });
   } catch (error) {
+    await browser.close();
     return NextResponse.json({ error: 'Error al obtener los datos' }, { status: 500 });
   }
 }

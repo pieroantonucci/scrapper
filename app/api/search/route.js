@@ -88,18 +88,19 @@ export async function GET(request) {
   const rut = searchParams.get('rut');
   const dv = searchParams.get('dv');
 
-  console.log('Received request with RUT:', rut, 'DV:', dv); // Log de entrada
+  console.log('Received request with RUT:', rut, 'DV:', dv);
 
   if (!rut || !dv) {
     console.error('Missing RUT or DV');
     return NextResponse.json({ error: 'RUT y DV son requeridos' }, { status: 400 });
   }
 
-  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] });
-  const page = await browser.newPage();
-
+  let browser;
   try {
+    browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] });
+    const page = await browser.newPage();
     let allResults = [];
+
     for (const { corte, tribunal } of cortesTribunales) {
       try {
         console.log(`Searching causes for Corte: ${corte}, Tribunal: ${tribunal}`);
@@ -118,9 +119,10 @@ export async function GET(request) {
     return response;
   } catch (error) {
     console.error('Error while obtaining data:', error);
-    await browser.close();
+    if (browser) await browser.close();
     const response = NextResponse.json({ error: 'Error al obtener los datos' }, { status: 500 });
     response.headers.set('Access-Control-Allow-Origin', '*');
     return response;
   }
 }
+

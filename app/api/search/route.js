@@ -88,7 +88,10 @@ export async function GET(request) {
   const rut = searchParams.get('rut');
   const dv = searchParams.get('dv');
 
+  console.log('Received request with RUT:', rut, 'DV:', dv); // Log de entrada
+
   if (!rut || !dv) {
+    console.error('Missing RUT or DV');
     return NextResponse.json({ error: 'RUT y DV son requeridos' }, { status: 400 });
   }
 
@@ -99,18 +102,22 @@ export async function GET(request) {
     let allResults = [];
     for (const { corte, tribunal } of cortesTribunales) {
       try {
+        console.log(`Searching causes for Corte: ${corte}, Tribunal: ${tribunal}`);
         const data = await buscarCausas(page, rut, dv, corte, tribunal);
-        console.log(`Datos obtenidos para Corte: ${corte}, Tribunal: ${tribunal}:`, data);
+        console.log(`Data obtained for Corte: ${corte}, Tribunal: ${tribunal}:`, data);
         allResults = [...allResults, ...data];
       } catch (error) {
-        console.error(`Error en buscarCausas para Corte: ${corte}, Tribunal: ${tribunal}`, error);
+        console.error(`Error in buscarCausas for Corte: ${corte}, Tribunal: ${tribunal}`, error);
       }
     }
     await browser.close();
+    console.log('All results obtained:', allResults);
+
     const response = NextResponse.json(allResults, { status: 200 });
     response.headers.set('Access-Control-Allow-Origin', '*');
     return response;
   } catch (error) {
+    console.error('Error while obtaining data:', error);
     await browser.close();
     const response = NextResponse.json({ error: 'Error al obtener los datos' }, { status: 500 });
     response.headers.set('Access-Control-Allow-Origin', '*');

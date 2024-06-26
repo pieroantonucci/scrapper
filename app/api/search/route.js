@@ -107,10 +107,13 @@ export async function GET(request) {
       }
     }
     await browser.close();
-    console.log('Todos los resultados obtenidos:', allResults);
-    return NextResponse.json(allResults, { status: 200 });
+    const response = NextResponse.json(allResults, { status: 200 });
+    response.headers.set('Access-Control-Allow-Origin', '*');
+    return response;
   } catch (error) {
     await browser.close();
-    return NextResponse.json({ error: 'Error al obtener los datos' }, { status: 500 });
+    const response = NextResponse.json({ error: 'Error al obtener los datos' }, { status: 500 });
+    response.headers.set('Access-Control-Allow-Origin', '*');
+    return response;
   }
 }

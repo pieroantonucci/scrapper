@@ -1,6 +1,7 @@
 // app/api/search/route.js
 import { NextResponse } from 'next/server';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import chromium from 'chrome-aws-lambda';
 import cortesTribunales from '../../../data/cortesTribunales.json';
 
 const buscarCausas = async (page, rut, dv, corte, tribunal) => {
@@ -97,7 +98,12 @@ export async function GET(request) {
 
   let browser;
   try {
-    browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] });
+    browser = await puppeteer.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath,
+      headless: true,
+    });
+
     const page = await browser.newPage();
     let allResults = [];
 
@@ -125,4 +131,3 @@ export async function GET(request) {
     return response;
   }
 }
-

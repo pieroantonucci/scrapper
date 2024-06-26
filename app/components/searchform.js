@@ -16,7 +16,7 @@ export default function SearchForm() {
     setError(null);
     setResults(null);
     try {
-      const response = await fetch(`/api/search?rut=${rut}&dv=${dv}`);
+      const response = await fetch(`https://scrapper-tawny.vercel.app/api/search?rut=${rut}&dv=${dv}`);
       if (!response.ok) {
         throw new Error('Error al buscar las causas');
       }

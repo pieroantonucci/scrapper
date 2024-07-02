@@ -1,6 +1,6 @@
 // app/api/search/route.js
 import { NextResponse } from 'next/server';
-import puppeteer from 'puppeteer-core';
+import puppeteer from 'puppeteer';
 import cortesTribunales from '../../../data/cortesTribunales.json';
 
 const buscarCausas = async (page, rut, dv, corte, tribunal) => {

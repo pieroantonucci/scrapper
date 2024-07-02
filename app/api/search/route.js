@@ -1,7 +1,6 @@
 // app/api/search/route.js
 import { NextResponse } from 'next/server';
-import puppeteer from 'puppeteer-core';
-import chromium from 'chrome-aws-lambda';
+import puppeteer from 'puppeteer';
 import cortesTribunales from '../../../data/cortesTribunales.json';
 
 const buscarCausas = async (page, rut, dv, corte, tribunal) => {
@@ -89,43 +88,32 @@ export async function GET(request) {
   const rut = searchParams.get('rut');
   const dv = searchParams.get('dv');
 
-  console.log('Received request with RUT:', rut, 'DV:', dv);
-
   if (!rut || !dv) {
-    console.error('Missing RUT or DV');
     return NextResponse.json({ error: 'RUT y DV son requeridos' }, { status: 400 });
   }
 
-  let browser;
+  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] });
+  const page = await browser.newPage();
+
   try {
-    browser = await puppeteer.launch({
-      args: chromium.args,
-      executablePath: await chromium.executablePath,
-      headless: true,
-    });
-
-    const page = await browser.newPage();
     let allResults = [];
-
     for (const { corte, tribunal } of cortesTribunales) {
       try {
-        console.log(`Searching causes for Corte: ${corte}, Tribunal: ${tribunal}`);
         const data = await buscarCausas(page, rut, dv, corte, tribunal);
-        console.log(`Data obtained for Corte: ${corte}, Tribunal: ${tribunal}:`, data);
+        console.log(`Datos obtenidos para Corte: ${corte}, Tribunal: ${tribunal}:`, data);
         allResults = [...allResults, ...data];
       } catch (error) {
-        console.error(`Error in buscarCausas for Corte: ${corte}, Tribunal: ${tribunal}`, error);
+        console.error(`Error en buscarCausas para Corte: ${corte}, Tribunal: ${tribunal}`, error);
       }
     }
     await browser.close();
-    console.log('All results obtained:', allResults);
 
+    // Agregar los encabezados CORS
     const response = NextResponse.json(allResults, { status: 200 });
     response.headers.set('Access-Control-Allow-Origin', '*');
     return response;
   } catch (error) {
-    console.error('Error while obtaining data:', error);
-    if (browser) await browser.close();
+    await browser.close();
     const response = NextResponse.json({ error: 'Error al obtener los datos' }, { status: 500 });
     response.headers.set('Access-Control-Allow-Origin', '*');
     return response;

@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import puppeteer from 'puppeteer';
 import cortesTribunales from '../../../data/cortesTribunales.json';
+import chromium from 'chrome-aws-lambda';
 
 const buscarCausas = async (page, rut, dv, corte, tribunal) => {
   try {
@@ -92,7 +93,15 @@ export async function GET(request) {
     return NextResponse.json({ error: 'RUT y DV son requeridos' }, { status: 400 });
   }
 
-  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] });
+  // const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] });
+  
+  const browser = await chromium.puppeteer.launch({
+    args: [...chromium.args, "--hide-scrollbars", "--disable-web-security"],
+    defaultViewport: chromium.defaultViewport,
+    executablePath: chromium.executablePath,
+    headless: true,
+    ignoreHTTPSErrors: true
+  })
   const page = await browser.newPage();
 
   try {

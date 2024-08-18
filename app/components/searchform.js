@@ -36,6 +36,7 @@ export default function SearchForm() {
             <input className='my-1 rounded-md px-3 text-center' type="text" value={rut} onChange={(e) => setRut(e.target.value)} placeholder="Ingrese RUT sin DV, sin puntos ni guión" />
             <input className='my-1 rounded-md px-3 text-center' type="text" value={dv} onChange={(e) => setDv(e.target.value)} placeholder="Ingrese DV" />
             <button className='bg-cyan-600 text-slate-800 font-bold mx-auto my-3 px-24 rounded-xl' onClick={handleSearch}>Buscar</button>
+            
         </div>
       {loading && (
         <div className='flex flex-col items-center mb-10'>
